@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>English Lesson Coach</title>
+<style>
+:root{
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --good:#006300;
+  --accent:#2a78d6;
+  --c1:#2a78d6; --c2:#1baf7a; --c3:#eda100; --c4:#008300; --c5:#4a3aa7; --c6:#e34948; --c7:#e87ba4; --c8:#eb6834;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --good:#0ca30c;
+    --accent:#3987e5;
+    --c1:#3987e5; --c2:#199e70; --c3:#c98500; --c4:#008300; --c5:#9085e9; --c6:#e66767; --c7:#d55181; --c8:#d95926;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--page);color:var(--ink);
+  -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:var(--accent)}
+.wrap{max-width:760px;margin:0 auto;padding:16px 16px 96px}
+header.app{display:flex;align-items:baseline;gap:10px;padding:8px 0 16px}
+header.app h1{font-size:20px;font-weight:700}
+header.app .sub{font-size:12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:12px}
+/* --- lock screen --- */
+#lock{max-width:360px;margin:18vh auto 0;text-align:center;padding:24px}
+#lock h1{font-size:22px;margin-bottom:6px}
+#lock p{font-size:13px;color:var(--ink2);margin-bottom:18px}
+#lock input{width:100%;padding:12px;border:1px solid var(--axis);border-radius:10px;font-size:16px;
+  background:var(--surface);color:var(--ink);text-align:center}
+#lock button{width:100%;margin-top:10px;padding:12px;border-radius:10px;background:var(--accent);color:#fff;font-weight:600}
+#lockErr{color:var(--c6);font-size:13px;margin-top:10px;min-height:1em}
+/* --- tabs --- */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface);
+  border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);z-index:20}
+nav.tabs button{flex:1;padding:10px 0 8px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px;align-items:center}
+nav.tabs button .ico{font-size:20px;line-height:1}
+nav.tabs button.on{color:var(--accent);font-weight:600}
+/* --- stat tiles --- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.tile .lbl{font-size:11px;color:var(--muted);margin-bottom:4px}
+.tile .val{font-size:26px;font-weight:700;line-height:1.1}
+.tile .val small{font-size:13px;font-weight:400;color:var(--ink2)}
+.tile .delta{font-size:11px;margin-top:4px;color:var(--ink2)}
+.tile .delta.up{color:var(--good)}
+.tile .delta.down{color:var(--c6)}
+/* --- lists --- */
+.repeat li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--grid);list-style:none;font-size:14px}
+.repeat li:last-child{border-bottom:none}
+.badge{min-width:34px;text-align:center;font-size:12px;font-weight:700;border-radius:999px;padding:3px 8px;
+  background:var(--c6);color:#fff}
+.badge.low{background:var(--axis);color:var(--ink)}
+.repeat .cat{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+/* --- legend / charts --- */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.legend span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink2)}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block}
+.chart text{font-family:inherit}
+#tooltip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.15);display:none;max-width:240px}
+#tooltip .tt-title{font-weight:600;margin-bottom:4px}
+#tooltip .tt-row{display:flex;align-items:center;gap:6px;color:var(--ink2)}
+#tooltip .tt-row i{width:8px;height:8px;border-radius:2px;display:inline-block}
+#tooltip .tt-row b{margin-left:auto;color:var(--ink);font-variant-numeric:tabular-nums}
+/* --- reports --- */
+.datebar{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px}
+.datebar button{white-space:nowrap;padding:6px 12px;border-radius:999px;border:1px solid var(--axis);font-size:13px;color:var(--ink2)}
+.datebar button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.md{font-size:14px;line-height:1.75}
+.md h1{font-size:18px;margin:14px 0 8px}
+.md h2{font-size:15px;margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--grid)}
+.md h3{font-size:14px;margin:12px 0 4px}
+.md p{margin:6px 0}
+.md ul{margin:6px 0 6px 22px}
+.md code{background:var(--page);border:1px solid var(--grid);border-radius:4px;padding:1px 5px;font-size:12.5px}
+.md .tblwrap{overflow-x:auto;margin:8px 0}
+.md table{border-collapse:collapse;font-size:13px;min-width:100%}
+.md th,.md td{border:1px solid var(--grid);padding:6px 9px;text-align:left;vertical-align:top}
+.md th{background:var(--page);color:var(--ink2);font-weight:600;white-space:nowrap}
+/* --- flashcards --- */
+.fc-stage{perspective:1000px;margin-bottom:12px}
+.fc-card{position:relative;width:100%;min-height:230px;transform-style:preserve-3d;transition:transform .45s;cursor:pointer}
+.fc-card.flip{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;text-align:center}
+.fc-face.back{transform:rotateY(180deg)}
+.fc-front-text{font-size:22px;font-weight:700;line-height:1.4}
+.fc-back-text{font-size:15px;line-height:1.7;white-space:pre-wrap}
+.fc-tag{position:absolute;top:12px;left:14px;font-size:10px;color:var(--muted);letter-spacing:.05em}
+.fc-hint{position:absolute;bottom:12px;font-size:11px;color:var(--muted)}
+.fc-speak{position:absolute;top:8px;right:10px;font-size:20px;padding:6px}
+.fc-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.fc-btns button{padding:12px 0;border-radius:10px;border:1px solid var(--axis);font-size:13px;font-weight:600;background:var(--surface)}
+.fc-btns .b-again{color:var(--c6)} .fc-btns .b-hard{color:var(--c3)}
+.fc-btns .b-good{color:var(--accent)} .fc-btns .b-easy{color:var(--good)}
+.fc-meta{text-align:center;font-size:12px;color:var(--muted);margin-bottom:10px}
+.fc-done{text-align:center;padding:40px 10px;color:var(--ink2);font-size:15px}
+.empty{color:var(--muted);font-size:13px;text-align:center;padding:24px 0}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <h1>🎓 English Lesson Coach</h1>
+  <p>パスフレーズを入力してください</p>
+  <input id="pass" type="password" autocomplete="current-password" placeholder="passphrase">
+  <button id="unlock">開く</button>
+  <div id="lockErr"></div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="wrap">
+    <header class="app"><h1 id="appTitle">🎓 Lesson Coach</h1><span class="sub" id="genAt"></span></header>
+    <main id="view"></main>
+  </div>
+  <nav class="tabs">
+    <button data-tab="home" class="on"><span class="ico">📊</span>概要</button>
+    <button data-tab="reports"><span class="ico">📝</span>レポート</button>
+    <button data-tab="cards"><span class="ico">🃏</span>カード</button>
+    <button data-tab="stats"><span class="ico">📈</span>統計</button>
+  </nav>
+</div>
+<div id="tooltip"></div>
+
+<script>
+"use strict";
+const ENCRYPTED = "{\"salt\":\"YZMRIRYEBp0Uf84KY8pJNQ==\",\"iv\":\"JkpltkTu/dnFr9pu\",\"ct\":\"COffSyDDFbdvnnzMZKzdOmcREeiQTLWIzqdYB6GoWjpwBt8dBjn0ub/mjg6QgmPzmUGLZNA70ER4FgtnFmRg+PRHVVQ/BWnXxYqVzUOL1v2HV7sRMDpyu03FCIflrSisW9Ce+P1kHceaRXS88U5Z+R0SbazECLrdxlFZBIWlrIqhGizodRQFj0QUyGeGAB89dHN6cZLyNicEqOJhHxYouoGjnr6S4rG42REz6MaZnqsiY2XoGYjJxxOCzJ4cgZYZfAgDStpwS0o2aTFVWbtsfv5LIZsYM2YgAlVLbyRoRE8Oje2pIvHIySw+WSsrVuVYyOpQe68HMNfvNNBP0fSO6DHT5JJk5z6xWm2uIKhh7Mn3yoBSmDACiMUJHXwwXRojgVUaDWrgh+CZp+Zwktl0nmeI2UXrrYm7725PMqzcco8jf6qP9/3wL+On5XKf79YmuzkfUz5uGCe9YImzw+Qr7twfd4jxdX13e/+TnaVzuSLZTis2Irw3MTgcWhZu0N7kWxnAwDlmFG45DDGw4dz92ZfKkOov2hPkTt806VjX2ROZRKxvccIgeQJtw0wFbc4z0qEZIFWsuLgTLCxzzOkaW87ymve9qsJKCjlIU7/1jqhA9jDHnSFzXz4Y7lGGvtAdqzUmf0LzLAb5xeLyujQjAI3mnRsud74uA10DsiFlKnT4ZGyvOHlRKYRNL+nEjPg2RaGttcuxo5qhdFRc4H1spkcyO65v3gGddUT6iQjJlUvFeVlHw3U+RPpBrKkG93JMwwes0iC1/KSlCQUQWlpPUKsvBODaWOBiq8rNWFBNJvBMbCJ3PPnyq2ch6Tga++KpIrrSROWZ/wgypnIWfaPSoOsr7e2MdeohoxcWEszVjQjq90Xpg+XX2A+sSOgGa135gg2DmjYTQwv6TtTuajeFwe2tyCws2KbS6G4IIbviCsVmm4Pblm2xbASuupmLmWFIYZ6F95q4PFwNMs34yuhpWQ3lNNafrtPPlKReEBALBRkTbUOuF/F4r1+Gu9DSOfqC4iCLe7vqmvFW6XPDN1BBYuXyHMyv4+TFisp1PbrdKdmTHqrd+5EvbzZWptM2Ih4nCoyezmt/2MvOlGSNvemVCYkgOWnx1sBI88KB5Q+p332w5/eaXOsk6ovNH1S54O58UGCm0Z8YgYJucble9X6prhKvMvFSIemdWjiO4M5560CBnkU03fzZzSU+oilqOouKa/cAms4FY1FGpleJZkPNCSgXQ2rB6XGDu9nKhCh7EnOmZdDtRHwyuomC92mnWWRsA7ajQn5mxru66hYZlKIgzXHI0YBYoSALMCb1p2M3eJflvNBMBc7Vc8iMymvKDyWsWdbuP7i2Xo+fNUwuk3gTQb73az8N5vZhjJCyjSaceHFrdJWYfBKag+QIv5UXTUDypft2FPW7HdY7zRSFh7K5VW++qcMg47wRZqp1hVD2tny3BtPiJDnQe3AgbkMDEOrya2kW3uG3z9XasGwk+CqULVcSBkKJlBNA6ttufOyGibsiFaBLZma5kjjal3iMgTeOSpOFA5mxS2giEsw26bMZgl/vs3x6zXF2vn6VXfyblX2HMMmhqiI1ZFkYdAbiT+S1HiR7YxzF2TKapnCaaI6rIcr/6n5PdsMENGoYBLySXtdch0qUL7z0Uvhn6re4/f8LvdGLIg0vNV9FyJgiP05FQUhEHQSI50wW00pOFb+rfYGbkAbfPx+1b5l2/9tmygeGoopXqmlzZc01uLHcA4EKmUfex0LE2S/eOuVvM37aGCnVNmVfni3nDY6/VmKszTznBJDLrnnf3GeZd8VFvvLaMI97RjNT9foVDvNfMRGaXEdA8HZpbdGmn0qYSbRnLzy0oCPKJ+t+x70C2sRhtkIj8ttJwZQwOV5m5mqTNvt+xWawAaz0Y5UvdOuoXcuSokaVZBTjXOis7oJkXpgbR+BcmfXIDjDweS9THipDUGBvQhUdtqelRZOl28CWBQZOgIInpI5T6Jr5yL0MM5+Uf0oqvZYq/ttTD2L72Hgt2FQ1uMk/cq1ewV6ydsts3vgJgKYnWiVsmM4u9ei5WnfypzRgPhfNi0P3mOZghbA03/t4cI5OJ3akmAuF0Ix3mQXpKDZJlJdkYopvQqU03d8dN6mfxI0Z5RSGLgwmytS9yqeHKfM111nxk1qclahO6BUOX9S1p7Tg1eI7GyCpHUzThKBJW2rJgwic8LFPo5a+2SBA907FYAxNpwi1+kbg+VkEylCeoyonNWuvpGLFcT1Rb/4YTVrXU1N+WWEWvJx3aavkzZ0IomQvfGQPTZQ/s+WBXI7Nt3+NQ8Oy2lLeIuHTrfNJYcEGJhZjkV4iu7T0jFYcgUxQzw5AB0j0CcbjVRZXZpHi7q1EUOiSppPdMShQbtokucHEOYSG7KFFC63LB9NqmEdkqcU1RpVQf5xUxCfBBLwMPAgylsE9uJlxRba9lOdKf8x57REXvttST6hkahnjnFU1mzUiT8NE84iTETA648VUTGUSHd2/kPRgUJMlRlpyU+LPdE0G56jrfWQCPyC5PZg+TFA2fl5AT3wZB84rAUXBk2SnckzqNXSou1o4RR2c3VyiAcp1oewBeWQ3GhJsC2JgsiGkAzQhnye1QMp/wauNJvHT6YD3cbVVE0ppVkqEJtJf/k1vttqkP4ggv3K8CbFqL6CrWsVP2NiFdn/3q+OwHcZN31/sQX9Irze0AwMzlD7BTr+ZRLkr6ov6ABnsqoYGlhp8xr3fbDdPtyeamR7VZReoY/0TX6P+b3Oy2XyDAva7zJSP1Oe1vQ51ef9nLJe+Jr2EfU+6+D2UmVXY6kzatu8WnGKPapav5BtJM4WCJzopNXpcxzvoc5sy0ir7GfdbnO1nexr608CDA1cL4KZf1t23gdIeXKeB+QnkTP16tItIi87Or9sfVwTPfEu+ma01qcamAtkIp5XdMPsQXjDaY52mxN3QCa7J+nLYW2nIpQdsZe937gV7+KiWkD/fT/OmdG+YILz32uEH1plnC7jFyt5W1/R3+f6Spzbr0lnv7gxCi4+602a+RrtT2sTyQ+j++S3IIiy1fxXUSkOVY5jxSkCofemAYA+Te4omtwviFb0XpiErwATnzuHtGeTYvrdrRPKDjRp5TVpNvGwBCL+Ou5Wa8gFUbwg5bsIjTh6MejhODstD98aT1VIENSvERaybn22hwyvFg+w0NVn+GiFFpz3ts9PXmaCB4msZno9ulvptiRJHGsFyg1old+N5Qf/IbIVzUD9EZi6Tb0YhqoEBVQPQQMwNZ6M1IDqHKCl36zHyraqEuD1oKU4c1Fu6cjIAGiGsnF/QansdywNuPQRZ29EtM7U29lzy/s0xfsKf4UQknOftqZ//hVFxOJBsqOGFYh5Ue0M9l6deP7SrbbR9l6qwhHIEgS/c8XTo+tJ2Xifg9bPMsbQ6YWYSPwH7KYe2sIcTikqyQe18EJj2HkqJ1nmFdhWMpu7dP/cNvdEgYzN13OQ36VfxsXnQqEASYzP5/MTRSekBX5tX2BKiJCt6fQJNw7UAvDOe6hU3YZVv4Txnff7C1os0G6i5wQThkZvsfUkH7z4tmD0plXlAJnmWRdKOtxa/35/YOVCOQMFs1jyxILoUibh1mAS+8sy4GSDiiReQqgyAZvYFdnfIPU6xjDYNVTZ4FBIhmcAZDs7nQMeSQBXl63eeBHsFadIR7lFXimDxlNe5EZM4hvYAz2QVFDX0t+UEKqTAR7D4zmT4fq+9Am2PThdQDwqm0X74Mn423uvtd/smkQ/yho5hEO3CbvZoq+fWYLfq4LBXtnU+y8/Bh9LUkERNOWHPGxs7AHjQbjZXMwAfzeItdUJHdHedANmfe2v69yasHYDXSxF2Lzvu0bNK8Opd27xgiPc5nOGjY7DiEoV0k0dClCs8EWeWZ04oAUggQqcmS2GE4lpSzxp6MkWmSFk3z626mSAN+YhsLZvLRzZgbQajRDdR8JytozeA4WR23Mc1cVD/Vb69AkycOwlBysTC98Hy8HX2c0fruDGGNtRJnxbsnKlKbbggzZbUCGj3CBt7jNzlVNRawIp1l2uuTbndNKEiLsjRLwGNGqElEOpsDIKt0KPsMuOn8jbD208X2v+/Puv9aDW0g0WrDdkXRskRyFpwUBmyZ7ywp6yr+GL99+rT1MXoufB/Y7MVxmrWzVcOYm91n+ZmHI579p0jnFCjh65KUPGKBbeQ+f5dcc33FLeL09ynvQHKz7/WoH3rH1BZ6KHuX6gAMJ0R/gMZq1XxWSD5cm5DHuylikrxVGcoKiPiTocHjQjWXG4DgcswZ+lM9FWXd29GHVRCKZi1JwSkrmNmpZG9Uk1KzCoG/Zc80ZCOa/t/G69KVqTo4wevq14PIiPND7hnz81PnwNFfLrmUYhXYEqFApTvKabOltZmtiQyERwY7Jr5ZPTkSDn3QOEvqHyXVTaopC2ZiW3WtC8GM9p3nLtfTzZK59jVBJMISaVbWt3LUSrQJnDIGj3d1ICA1ABfV8BlldKizF4o4dhVF4K8ZCmVhe48NgBHowP7x2wfZQuMWUHFi187dPSofq4/lP1tyR0Wq9YuquxEM+QkT0OCZz3SE+SktYP4bvtnu8SOGXSV31iFQHsNYqrJO9A/zmu7aAMO7TCO1cSY82DzRzpKY8wG98JSWU7kUDtPfaGb1bfmZ1gfDjc7WuKWEWN1zahxcvY7jjxKR2MHCmBudlbfqApwYSpgzfxDhNYJyhW88/nae+3HKE8soYUt/Xx4fHyngv9SuCQQsTKVoEyDD3uKgPDBF6IXPEr833qqVY5EYtrSJPxrj9JBYPjgFmCauN5pg/Hm4cvozDWD2064CsBlXOu9Q0Z+mIoCfZXJgaKPBXYvdZeODv5Mwa8ffUr3ib3lcwlwKPsGXXlevOBnbcCfU0fuzNdpfEiLuWtTnCmA4bvo3F1Jw9pKE8itkrz8XYXHqVYS+jsYOBrcWvZ2X10y2I8XZgcLSsY2HXNnY9aRkgaDru8CnqP718FXmXNUqvCUhd7EybEDrNJDc6PL1++aeT5WNmwAewojd7Rjao9zPa6VkWiVm59Evhi7ucIlU/IHdT+UuuDYKNzepfJl8eqShn1J11YB3KyYojkR5Z7Ev6QOQYY3HZ+fGjdLmYNO2hWhHKVHT++kkfZQLvZ4cyGE5mNVfmWfQy9sUR3epcpdHIEjH4EQcIAxxXWViwyA78MPvkA2XL/q1Z1CaQTXoaqdRVjzQkwyUV3UhoVX2suGr/EDimQH9QOw/GJnR8DTbNwtayaDpBGnaaiRJ3cdX8snGHl6iALqfr4W8DLdMaNPDbvgz8rKbfBE8msLTedubO7obf3oLO6TuHhtQCcCdNSE0IQuBucrgfkkO15K8gh/EHeFgcAVtnJnKKm2oXgYirYj03sqVo+1FDzGIeIhAJgw3KmU4gg9rg4Q3OmdodpIWbXbGg4dcF0kh0ce8PB3kUSedhiQtrXhq6LBIAgPvTMdmAG/VK3imJX0ffgpH22n3dT1R36GW8gJvUgBD/Zg25/m7oV6h6myzVCsVCkAozFbuRU0ymneLtcZQ3fMLVKt8cn9SccxdIAx0WjdhAgzJqDABqBI2EXvQ5Uja4C3eud+pIzDspHwCZQJpCijo3H+65jSB/47XSp0GEPc8XQpS0RNCpcfQ6m3swMH5kjXFhoeXH+IxZq4CAFTzfKvVXIXNpj9r+cfcY5WDppiAJJ4XGDtR+0M+Buutk/q6v3Fc+V9ct4I9aKjw5HoeREhSIU1YIVlpRffLQN1qk6dMX9H1uYl4esTn+6TBlJJUR8lZLq+jbjfFAlTPgRlUZ+ayLmXBjxevJPvncHZx1rQsqff7NhY6GciUS5OEN0xM1ADk7xSI10Fm8hw0HP+7hLZ1C/bmOD2wJX3A28Gcndrk9Ma3vWie7zEcoBJhrIpwNpUgS4r4MJ3VUJ2lJvOZue3z6hy6R6o36JYZpxTWuDbR17uRAnxFVsYZ9Syt8XQvYsOyto6ZUi9B742z28hwu13PYJc2ohIyEeYxhuuzNdxb4kgI2gxbxp+m33gY3Cc5aJ4fiTQAAMVBckC14eOqvQlNxUqehtaPMeSoDIFpOa+oOW83lT8itHs+MiR6iChZ210QaR7ncbxzmBdJKTtL8GjT0pJEXfBJ6uhAitbkPQWyWybZnresqV8ooW0x+/ahBpQUWtirUYnGv+knqJGdCI0as0UsbAqhb0Y4IognWPwr/rDBCHbtEpUZxjR/OQUeprMHGm9iV+43zlkHSKcr9bYZyPlPjB/fjHXnfo2MUXilOIFe/K5ttJdDeVdNvzJmrB1ryD9FLCuR7qkG2XjyxcfAc1mnCTYO8lPAyB25R9inPldkl4pOL+65fRSc7fA5tojMFOKUmcz2ASah9DdY2eNtvDaLzFDomauHcrNl47175CLBtbUEQHGFbfOosf6C50ulF8yU9u/FvxzY60rdSzk9FKKYmLtywSZ2cAp71ehcvl1hQX0YrSRL5BKwcHBQ1YfzCOOllVxZ9jH9rRIYDS3WHfjSoq/0RVp1BrY/U7xFa8NHGNrKB24h6n3/8ZsWfvo0hGZYdD2ZYVtKSCsOiKNTtRlFhWcYh6mjJwB2+GU7w+pY5HWb73Ec/SHFFxEggeHTcWzDfbV22GixBC+6zPK3mNmSqkPwuwuQzkx5M8Lm7UGGja/fruWnRki0aQWDCTCifQxS66cOz3VdNv+dRZPy0nlPAtN3BWIWFdrJ/tsLpx5OoTbEYDj+neNVkX398aQIk6TUaqOj0TPm9LS31JH32bWIyJKF5STKc1O1LKqwYJZjePa5UEX4iLNotUBfeI05U41PJSvsWnx0L11WKfz3YL7vRp0ApND5VPeLqjLCncCchHrfEoT9bDRsFnbOo3ca/hb5S18MftTt3La4rRYvR4GH5h+PGb8IoxyhUX5sLfEl1occ/vNhh6xubFjVE5KAw9A8lJY5x38cUnXH72ejBg+mNU2/uIZcmXF/bDR5mXUL+ci9XN8KRkMHGlNILeV2Z+WJQ5lyRpET69lwALosSF6daIguTyGvsu8DGiHwSYvxX79TgSim/x7y8FQGDd2bHOAmjgxU+a4S3Vvywlw0GRHoxxCi9vm3Jcxl5frId+4dOMJ50f6sdzRBzOYsxHRhT9qWhkI2ztKtowNN8Vf/niDNU4ixmB/MAUf6SxZnZ43KoWLDzLOAKC3MlOEQYu14KZ2qf/YjeW0aKhLhXV47ykgFEu8lRDdE3+McprXbDu2ch03sM1RGL7jCCVyXh6ZqMF/lEaVSTUtrQmKMecmA47eF6W/k1xzgKkbYd4TN4kGSJmdkViXCmcIJjuuKWXrt5Nh2rlFof4fOSXVeFqeNVP8fye5lxBCp4PJR6000+NNLh45DHBDdoMQemHbiruA583YXXRjdI99eh8rsvnLoM1y7p/x1mi7pdfMV7VKHLAisT+c7NHr5NG552FCh7BMQGEoDrn0+DgoWzRc6zSs7T/JIPuQMTIVCMrTndRTVqVsQnQn635HZ1MVdgmqKMIPHAv+b2VZ+SsdZ1gfu9fCTIgOefAURwM1MwkPnZkUckXl28duqQJ0FEKyGN9mfte+sKWsr8Q/JLXLex1Q4sypdOoa9Z1wENt0dm7Rqq34Ou/0pxUGyAGF\"}";
+let DB = null;
+
+/* ============ 復号 ============ */
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decrypt(passphrase){
+  const blob = JSON.parse(ENCRYPTED);
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt:b64d(blob.salt), iterations:250000, hash:"SHA-256"},
+    km, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64d(blob.iv)}, key, b64d(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+async function tryUnlock(passphrase, silent){
+  const err = document.getElementById("lockErr");
+  try{
+    document.getElementById("unlock").textContent = "復号中…";
+    DB = await decrypt(passphrase);
+    localStorage.setItem("elc-pass", passphrase);
+    document.getElementById("lock").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    boot();
+  }catch(e){
+    document.getElementById("unlock").textContent = "開く";
+    if(!silent) err.textContent = "パスフレーズが違います";
+    localStorage.removeItem("elc-pass");
+  }
+}
+document.getElementById("unlock").onclick = () => tryUnlock(document.getElementById("pass").value);
+document.getElementById("pass").addEventListener("keydown", e => { if(e.key === "Enter") tryUnlock(e.target.value); });
+if(ENCRYPTED === "__ENCRYPTED_PAYLOAD__"){
+  document.getElementById("lockErr").textContent = "（未ビルドのテンプレートです。build_dashboard.mjs を実行してください）";
+}else{
+  const saved = localStorage.getItem("elc-pass");
+  if(saved) tryUnlock(saved, true);
+}
+
+/* ============ 共通ヘルパー ============ */
+const CATS = ["冠詞","時制","前置詞","語彙選択","語順","複数形","直訳","その他"];
+const CAT_COLOR = {};
+CATS.forEach((c,i) => CAT_COLOR[c] = getComputedStyle(document.documentElement).getPropertyValue(`--c${i+1}`).trim());
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const el = (tag, cls, html) => { const n = document.createElement(tag); if(cls) n.className = cls; if(html != null) n.innerHTML = html; return n; };
+const fmtMin = sec => Math.round(sec/60) + "分";
+const shortDate = d => d.slice(5).replace("-","/");
+const lessons = () => DB.lessons.slice().sort((a,b) => a.date < b.date ? -1 : 1);
+
+/* ---- tooltip ---- */
+const tt = document.getElementById("tooltip");
+function showTT(html, x, y){
+  tt.innerHTML = html; tt.style.display = "block";
+  const r = tt.getBoundingClientRect();
+  tt.style.left = Math.min(Math.max(6, x - r.width/2), innerWidth - r.width - 6) + "px";
+  tt.style.top = (y - r.height - 12 < 6 ? y + 16 : y - r.height - 12) + "px";
+}
+function hideTT(){ tt.style.display = "none"; }
+document.addEventListener("scroll", hideTT, true);
+
+/* ============ SVGチャート ============ */
+const NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs){ const n = document.createElementNS(NS, tag); for(const k in attrs) n.setAttribute(k, attrs[k]); return n; }
+function chartFrame(w, h, pad, yMax, yTicks){
+  const svg = svgEl("svg", {viewBox:`0 0 ${w} ${h}`, width:"100%"});
+  const plotW = w - pad.l - pad.r, plotH = h - pad.t - pad.b;
+  for(let i = 0; i <= yTicks; i++){
+    const v = yMax * i / yTicks, y = pad.t + plotH - plotH * i / yTicks;
+    if(i > 0) svg.appendChild(svgEl("line", {x1:pad.l, x2:pad.l+plotW, y1:y, y2:y, stroke:css("--grid"), "stroke-width":1}));
+    const lbl = svgEl("text", {x:pad.l-6, y:y+3.5, "text-anchor":"end", "font-size":10, fill:css("--muted")});
+    lbl.textContent = Math.round(v); svg.appendChild(lbl);
+  }
+  svg.appendChild(svgEl("line", {x1:pad.l, x2:pad.l+plotW, y1:pad.t+plotH, y2:pad.t+plotH, stroke:css("--axis"), "stroke-width":1}));
+  return {svg, plotW, plotH};
+}
+function xLabels(svg, xs, labels, y){
+  const step = Math.ceil(labels.length / 8);
+  labels.forEach((l, i) => {
+    if(i % step) return;
+    const t = svgEl("text", {x:xs(i), y:y, "text-anchor":"middle", "font-size":10, fill:css("--muted")});
+    t.textContent = l; svg.appendChild(t);
+  });
+}
+/* 積み上げ棒: rows = [{label, parts:{cat:count}}] */
+function stackedBar(rows, cats){
+  const pad = {l:30, r:8, t:8, b:20}, w = Math.max(320, rows.length*44 + pad.l + pad.r), h = 200;
+  const yMax = Math.max(4, ...rows.map(r => cats.reduce((s,c) => s + (r.parts[c]||0), 0)));
+  const {svg, plotW, plotH} = chartFrame(w, h, pad, yMax, yMax <= 5 ? yMax : 4);
+  const bw = Math.min(26, plotW / rows.length * .6);
+  const xs = i => pad.l + plotW * (i + .5) / rows.length;
+  rows.forEach((r, i) => {
+    let acc = 0;
+    const total = cats.reduce((s,c) => s + (r.parts[c]||0), 0);
+    cats.forEach((c, ci) => {
+      const v = r.parts[c] || 0; if(!v) return;
+      const y0 = pad.t + plotH - plotH*acc/yMax, hgt = plotH*v/yMax;
+      const isTop = acc + v === total;
+      const rect = svgEl("rect", {x:xs(i)-bw/2, y:y0-hgt, width:bw, height:Math.max(hgt,1.5),
+        fill:CAT_COLOR[c] || css("--c8"), stroke:css("--surface"), "stroke-width":2, rx:isTop?4:0});
+      svg.appendChild(rect);
+      acc += v;
+    });
+    if(total > 0){
+      const lbl = svgEl("text", {x:xs(i), y:pad.t + plotH - plotH*total/yMax - 5, "text-anchor":"middle",
+        "font-size":10, "font-weight":600, fill:css("--ink2")});
+      lbl.textContent = total; svg.appendChild(lbl);
+    }
+    const hit = svgEl("rect", {x:xs(i)-plotW/rows.length/2, y:pad.t, width:plotW/rows.length, height:plotH, fill:"transparent"});
+    hit.addEventListener("pointermove", e => {
+      const items = cats.filter(c => r.parts[c]).map(c =>
+        `<div class="tt-row"><i style="background:${CAT_COLOR[c]}"></i>${esc(c)}<b>${r.parts[c]}</b></div>`).join("");
+      showTT(`<div class="tt-title">${esc(r.label)}</div>${items || "ミスなし 🎉"}`, e.clientX, e.clientY);
+    });
+    hit.addEventListener("pointerleave", hideTT);
+    svg.appendChild(hit);
+  });
+  xLabels(svg, xs, rows.map(r => r.label), h - 6);
+  return svg;
+}
+/* 折れ線: series = [{name, color, values}] , labels = x軸 */
+function lineChart(labels, series, unit){
+  const pad = {l:34, r:12, t:10, b:20}, w = Math.max(320, labels.length*40 + pad.l + pad.r), h = 190;
+  const yMax = Math.ceil(Math.max(4, ...series.flatMap(s => s.values.filter(v => v != null))) * 1.15);
+  const {svg, plotW, plotH} = chartFrame(w, h, pad, yMax, yMax <= 5 ? yMax : 4);
+  const xs = i => pad.l + (labels.length === 1 ? plotW/2 : plotW * i / (labels.length-1));
+  const ys = v => pad.t + plotH - plotH * v / yMax;
+  series.forEach(s => {
+    const pts = s.values.map((v,i) => v == null ? null : [xs(i), ys(v)]).filter(Boolean);
+    if(pts.length > 1)
+      svg.appendChild(svgEl("path", {d:"M" + pts.map(p => p.join(",")).join("L"), fill:"none", stroke:s.color, "stroke-width":2, "stroke-linejoin":"round"}));
+    pts.forEach(p => svg.appendChild(svgEl("circle", {cx:p[0], cy:p[1], r:4, fill:s.color, stroke:css("--surface"), "stroke-width":2})));
+    // 直接ラベル: 最後の点にだけ値を出す
+    const lastIdx = s.values.length - 1, lastV = s.values[lastIdx];
+    if(lastV != null){
+      const t = svgEl("text", {x:xs(lastIdx), y:ys(lastV)-8, "text-anchor":"middle", "font-size":10, "font-weight":600, fill:css("--ink2")});
+      t.textContent = lastV; svg.appendChild(t);
+    }
+  });
+  labels.forEach((l, i) => {
+    const hit = svgEl("rect", {x:xs(i)-plotW/Math.max(labels.length,1)/2, y:pad.t, width:plotW/Math.max(labels.length,1), height:plotH, fill:"transparent"});
+    hit.addEventListener("pointermove", e => {
+      const rows = series.map(s => s.values[i] == null ? "" :
+        `<div class="tt-row"><i style="background:${s.color}"></i>${esc(s.name)}<b>${s.values[i]}${unit||""}</b></div>`).join("");
+      showTT(`<div class="tt-title">${esc(l)}</div>${rows}`, e.clientX, e.clientY);
+    });
+    hit.addEventListener("pointerleave", hideTT);
+    svg.appendChild(hit);
+  });
+  xLabels(svg, xs, labels, h - 6);
+  return svg;
+}
+function legendFor(names, colors){
+  const lg = el("div", "legend");
+  names.forEach((n,i) => { const s = el("span"); s.innerHTML = `<i style="background:${colors[i]}"></i>${esc(n)}`; lg.appendChild(s); });
+  return lg;
+}
+
+/* ============ タブ ============ */
+const view = document.getElementById("view");
+const RENDER = {home:renderHome, reports:renderReports, cards:renderCards, stats:renderStats};
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav.tabs button").forEach(x => x.classList.toggle("on", x === b));
+  hideTT(); view.innerHTML = ""; RENDER[b.dataset.tab]();
+});
+function boot(){
+  document.getElementById("genAt").textContent = "更新: " + (DB.generated || "").slice(0,10);
+  renderHome();
+}
+
+/* ============ 概要 ============ */
+function tile(lbl, val, unit, delta, goodWhenDown){
+  const t = el("div", "tile");
+  let d = "";
+  if(delta != null && isFinite(delta) && delta !== 0){
+    const better = goodWhenDown ? delta < 0 : delta > 0;
+    d = `<div class="delta ${better ? "up" : "down"}">${delta > 0 ? "+" : ""}${delta} 前回比</div>`;
+  } else if(delta === 0){ d = `<div class="delta">±0 前回比</div>`; }
+  t.innerHTML = `<div class="lbl">${esc(lbl)}</div><div class="val">${esc(val)}<small> ${unit||""}</small></div>${d}`;
+  return t;
+}
+function renderHome(){
+  const ls = lessons();
+  if(!ls.length){ view.appendChild(el("div","card","<div class='empty'>まだレッスンデータがありません。/lesson-review を実行してください。</div>")); return; }
+  const cur = ls[ls.length-1], prev = ls[ls.length-2];
+
+  const head = el("div", "card");
+  head.innerHTML = `<h2>最新レッスン ${esc(cur.date)}</h2>
+    <div style="font-size:14px;line-height:1.7">${esc(cur.summary || "")}</div>
+    ${cur.topics?.length ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">話題: ${cur.topics.map(esc).join(" / ")}</div>` : ""}`;
+  view.appendChild(head);
+
+  const m = cur.metrics || {}, pm = prev?.metrics || {};
+  const talkPct = m.studentTalkSec && m.teacherTalkSec ? Math.round(100*m.studentTalkSec/(m.studentTalkSec+m.teacherTalkSec)) : null;
+  const tiles = el("div", "tiles");
+  tiles.appendChild(tile("ミス", m.mistakeCount ?? (cur.mistakes||[]).length, "件",
+    pm.mistakeCount != null ? (m.mistakeCount ?? 0) - pm.mistakeCount : null, true));
+  if(m.wpm) tiles.appendChild(tile("話す速さ", m.wpm, "WPM", pm.wpm ? m.wpm - pm.wpm : null, false));
+  if(talkPct != null) tiles.appendChild(tile("自分の発話割合", talkPct, "%", null));
+  if(m.fillers != null) tiles.appendChild(tile("つなぎ言葉", m.fillers, "回", pm.fillers != null ? m.fillers - pm.fillers : null, true));
+  view.appendChild(tiles);
+
+  // 繰り返しミス TOP5
+  const rep = el("div", "card", "<h2>⚠️ 繰り返しているミス TOP5</h2>");
+  const top = Object.values(DB.mistakes || {}).sort((a,b) => b.count - a.count).slice(0,5);
+  if(top.length){
+    const ul = el("ul", "repeat");
+    top.forEach(mi => {
+      const li = el("li");
+      li.innerHTML = `<span class="badge ${mi.count < 2 ? "low" : ""}">×${mi.count}</span>
+        <span>${esc(mi.label)}</span><span class="cat">${esc(mi.category)} · 直近 ${esc(shortDate(mi.lastSeen||""))}</span>`;
+      ul.appendChild(li);
+    });
+    rep.appendChild(ul);
+  } else rep.appendChild(el("div","empty","まだ蓄積データがありません"));
+  view.appendChild(rep);
+
+  // ミスカテゴリ推移
+  const trend = el("div", "card", "<h2>ミスカテゴリの推移</h2>");
+  const rows = ls.slice(-10).map(l => {
+    const parts = {};
+    (l.mistakes||[]).forEach(x => { const c = CATS.includes(x.category) ? x.category : "その他"; parts[c] = (parts[c]||0)+1; });
+    return {label: shortDate(l.date), parts};
+  });
+  const usedCats = CATS.filter(c => rows.some(r => r.parts[c]));
+  const cw = el("div", "chart"); cw.appendChild(stackedBar(rows, usedCats)); trend.appendChild(cw);
+  if(usedCats.length) trend.appendChild(legendFor(usedCats, usedCats.map(c => CAT_COLOR[c])));
+  view.appendChild(trend);
+
+  // 次回への提案
+  if(cur.advice?.length){
+    const adv = el("div","card","<h2>💡 次回意識すること</h2>");
+    adv.appendChild(el("ul","", cur.advice.map(a => `<li style="margin:4px 0 4px 20px;font-size:14px;line-height:1.6">${esc(a)}</li>`).join("")));
+    view.appendChild(adv);
+  }
+}
+
+/* ============ レポート ============ */
+function miniMd(src){
+  const lines = src.split("\n"); let html = "", inUl = false, tbl = [];
+  const inline = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  const flushTbl = () => {
+    if(!tbl.length) return;
+    const head = tbl[0], body = tbl.slice(1).filter(r => !/^[\s|:-]+$/.test(r.join("")));
+    html += `<div class="tblwrap"><table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>` +
+      body.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + "</tbody></table></div>";
+    tbl = [];
+  };
+  const closeUl = () => { if(inUl){ html += "</ul>"; inUl = false; } };
+  for(const raw of lines){
+    const line = raw.replace(/\s+$/, "");
+    if(/^\s*\|.*\|\s*$/.test(line)){ closeUl(); tbl.push(line.trim().slice(1,-1).split("|").map(c => c.trim())); continue; }
+    flushTbl();
+    let mh;
+    if((mh = line.match(/^(#{1,3})\s+(.*)/))){ closeUl(); html += `<h${mh[1].length}>${inline(mh[2])}</h${mh[1].length}>`; }
+    else if(/^\s*[-*]\s+/.test(line)){ if(!inUl){ html += "<ul>"; inUl = true; } html += `<li>${inline(line.replace(/^\s*[-*]\s+/,""))}</li>`; }
+    else if(line.trim() === ""){ closeUl(); }
+    else { closeUl(); html += `<p>${inline(line)}</p>`; }
+  }
+  flushTbl(); closeUl();
+  return html;
+}
+function renderReports(){
+  const dates = Object.keys(DB.reports || {}).sort().reverse();
+  if(!dates.length){ view.appendChild(el("div","card","<div class='empty'>レポートがまだありません</div>")); return; }
+  const bar = el("div", "datebar");
+  const body = el("div", "card md");
+  const show = d => {
+    bar.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.d === d));
+    body.innerHTML = miniMd(DB.reports[d]);
+    body.scrollIntoView({block:"nearest"});
+  };
+  dates.forEach(d => { const b = el("button","",esc(d)); b.dataset.d = d; b.onclick = () => show(d); bar.appendChild(b); });
+  view.appendChild(bar); view.appendChild(body);
+  show(dates[0]);
+}
+
+/* ============ フラッシュカード (SRS: SM-2簡易版) ============ */
+const SRS_KEY = "elc-srs";
+const srsLoad = () => JSON.parse(localStorage.getItem(SRS_KEY) || "{}");
+const srsSave = s => localStorage.setItem(SRS_KEY, JSON.stringify(s));
+const today = () => new Date().toISOString().slice(0,10);
+function dueCards(){
+  const st = srsLoad(), t = today();
+  return (DB.cards?.cards || []).filter(c => !st[c.id] || st[c.id].due <= t);
+}
+function rate(card, grade){ // 0=again 1=hard 2=good 3=easy
+  const st = srsLoad();
+  const s = st[card.id] || {interval:0, ease:2.5};
+  if(grade === 0){ s.interval = 0; }
+  else{
+    s.ease = Math.max(1.3, s.ease + [0,-0.15,0,0.15][grade]);
+    if(s.interval === 0) s.interval = grade === 1 ? 1 : (grade === 3 ? 4 : 2);
+    else s.interval = Math.round(s.interval * (grade === 1 ? 1.2 : s.ease * (grade === 3 ? 1.3 : 1)));
+    s.interval = Math.min(s.interval, 365);
+  }
+  const d = new Date(); d.setDate(d.getDate() + s.interval);
+  s.due = d.toISOString().slice(0,10);
+  st[card.id] = s; srsSave(st);
+}
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US"; u.rate = 0.95;
+  const v = speechSynthesis.getVoices().find(v => v.lang.startsWith("en"));
+  if(v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+if("speechSynthesis" in window) speechSynthesis.getVoices(); // iOSの音声リスト初期化
+function renderCards(){
+  const all = DB.cards?.cards || [];
+  if(!all.length){ view.appendChild(el("div","card","<div class='empty'>カードがまだありません</div>")); return; }
+  let queue = dueCards(); // セッション内キュー(againは末尾へ戻す)
+  const meta = el("div","fc-meta");
+  const stage = el("div","fc-stage");
+  const btns = el("div","fc-btns");
+  btns.innerHTML = `<button class="b-again">もう一度</button><button class="b-hard">難しい</button>
+    <button class="b-good">OK</button><button class="b-easy">簡単</button>`;
+  view.appendChild(meta); view.appendChild(stage); view.appendChild(btns);
+
+  let cardNode = null;
+  function draw(){
+    stage.innerHTML = ""; btns.style.visibility = queue.length ? "visible" : "hidden";
+    meta.textContent = `残り ${queue.length} 枚 / 全 ${all.length} 枚`;
+    if(!queue.length){
+      stage.appendChild(el("div","fc-done","🎉 今日の復習は完了！<br><small>また明日開いてください</small>"));
+      return;
+    }
+    const c = queue[0];
+    cardNode = el("div","fc-card");
+    cardNode.innerHTML = `
+      <div class="fc-face">
+        <span class="fc-tag">${esc((c.tags||[]).join(" · "))} · ${esc(c.date||"")}</span>
+        <button class="fc-speak" aria-label="読み上げ">🔊</button>
+        <div class="fc-front-text">${esc(c.front)}</div>
+        <span class="fc-hint">タップで答えを見る</span>
+      </div>
+      <div class="fc-face back">
+        <button class="fc-speak" aria-label="読み上げ">🔊</button>
+        <div class="fc-back-text">${esc(c.back)}</div>
+      </div>`;
+    cardNode.onclick = e => { if(e.target.closest(".fc-speak")) return; cardNode.classList.toggle("flip"); };
+    cardNode.querySelectorAll(".fc-speak").forEach(b => b.onclick = () => speak(c.front));
+    stage.appendChild(cardNode);
+  }
+  btns.querySelectorAll("button").forEach((b, grade) => b.onclick = () => {
+    const c = queue.shift();
+    rate(c, grade);
+    if(grade === 0) queue.push(c); // このセッション中にもう一度出す
+    draw();
+  });
+  draw();
+}
+
+/* ============ 統計 ============ */
+function renderStats(){
+  const ls = lessons();
+  if(!ls.length){ view.appendChild(el("div","card","<div class='empty'>データがありません</div>")); return; }
+  const labels = ls.map(l => shortDate(l.date));
+  const C1 = css("--c1"), C6 = css("--c6"), C3 = css("--c3"), C2 = css("--c2");
+
+  const totalCards = (DB.cards?.cards || []).length;
+  const totalMistakes = ls.reduce((s,l) => s + (l.mistakes||[]).length, 0);
+  const tiles = el("div","tiles");
+  tiles.appendChild(tile("レッスン回数", ls.length, "回"));
+  tiles.appendChild(tile("学習カード", totalCards, "枚"));
+  tiles.appendChild(tile("記録したミス", totalMistakes, "件"));
+  view.appendChild(tiles);
+
+  const add = (title, seriesArr, unit) => {
+    const c = el("div","card",`<h2>${title}</h2>`);
+    const cw = el("div","chart");
+    cw.appendChild(lineChart(labels, seriesArr, unit));
+    c.appendChild(cw);
+    if(seriesArr.length > 1) c.appendChild(legendFor(seriesArr.map(s => s.name), seriesArr.map(s => s.color)));
+    view.appendChild(c);
+  };
+  add("ミス数の推移", [{name:"ミス", color:C6, values:ls.map(l => (l.mistakes||[]).length)}], "件");
+  if(ls.some(l => l.metrics?.wpm))
+    add("話す速さ (WPM)", [{name:"WPM", color:C1, values:ls.map(l => l.metrics?.wpm ?? null)}], "");
+  if(ls.some(l => l.metrics?.fillers != null))
+    add("つなぎ言葉の回数", [{name:"fillers", color:C3, values:ls.map(l => l.metrics?.fillers ?? null)}], "回");
+  const cum = []; let acc = 0;
+  ls.forEach(l => { acc += (l.expressions||[]).length; cum.push(acc); });
+  add("学んだ表現の累計", [{name:"表現", color:C2, values:cum}], "");
+
+  // 発音要注意ワード
+  const flags = [...new Set(ls.flatMap(l => l.pronunciationFlags || []))];
+  if(flags.length){
+    const c = el("div","card","<h2>🗣 発音要注意ワード</h2>");
+    c.appendChild(el("div","", flags.map(f =>
+      `<span style="display:inline-block;margin:3px;padding:4px 10px;border:1px solid var(--axis);border-radius:999px;font-size:13px">${esc(f)}</span>`).join("")));
+    view.appendChild(c);
+  }
+}
+</script>
+</body>
+</html>
